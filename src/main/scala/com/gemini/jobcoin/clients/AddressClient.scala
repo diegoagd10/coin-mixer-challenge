@@ -1,9 +1,9 @@
 package com.gemini.jobcoin.clients
 
 import akka.stream.Materializer
-import com.gemini.jobcoin.json.AddressResponse
+import com.gemini.jobcoin.json.Address
 import com.typesafe.config.Config
-import play.api.libs.json.{JsError, JsSuccess, JsValue}
+import play.api.libs.json.JsValue
 import play.api.libs.ws.JsonBodyReadables._
 import play.api.libs.ws.ahc.StandaloneAhcWSClient
 
@@ -16,7 +16,7 @@ class AddressClient(config: Config)(implicit materializer: Materializer) {
   private val wsClient = StandaloneAhcWSClient()
   private val apiAddressesUrl = config.getString("jobcoin.apiAddressesUrl")
 
-  def get(address: String): Future[AddressResponse] = async {
+  def get(address: String): Future[Address] = async {
     val response = await {
       wsClient
         .url(s"$apiAddressesUrl/$address")
@@ -25,7 +25,7 @@ class AddressClient(config: Config)(implicit materializer: Materializer) {
 
     response
       .body[JsValue]
-      .validate[AddressResponse]
+      .validate[Address]
       .get
   }
 }

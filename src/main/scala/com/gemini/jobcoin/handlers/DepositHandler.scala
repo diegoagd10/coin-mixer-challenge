@@ -1,13 +1,11 @@
 package com.gemini.jobcoin.handlers
 
-
 import java.util.UUID
 
-import akka.stream.Materializer
 import com.gemini.jobcoin.clients.AddressClient
-import com.gemini.jobcoin.db.{Address, DepositAddress}
-import com.gemini.jobcoin.json.AddressResponse
-import com.gemini.jobcoin.repository.{AddressRepository, DepositAddressRepository}
+import com.gemini.jobcoin.db.{Address, Deposit}
+import com.gemini.jobcoin.json
+import com.gemini.jobcoin.repository.{AddressRepository, DepositRepository}
 import com.typesafe.config.Config
 
 import scala.async.Async._
@@ -16,16 +14,17 @@ import scala.concurrent.Future
 
 case class AddressAlreadyUsed(address: String) extends Exception(s"The address $address is already used.")
 
-class DepositAddressHandler(config: Config)(implicit materializer: Materializer) {
-  private final val addressClient = new AddressClient(config)
-  private final val addressRepository = new AddressRepository
-  private final val depositAddressRepository = new DepositAddressRepository
+class DepositAddressHandler(
+  config: Config,
+  addressClient: AddressClient,
+  addressRepository: AddressRepository,
+  depositAddressRepository: DepositRepository) {
 
   def generateDepositAddress(addresses: Seq[String]): Future[String] = async {
     await(checkAddressesAvailability(addresses))
     await(lockAddresses(addresses))
     val key = UUID.randomUUID().toString
-    val depositAddress = DepositAddress(key, addresses)
+    val depositAddress = Deposit(key, addresses)
     await(depositAddressRepository.write(depositAddress))
     key
   }
@@ -67,7 +66,7 @@ class DepositAddressHandler(config: Config)(implicit materializer: Materializer)
     Future.successful()
   }
 
-  private def isNewAddress(address: AddressResponse): Boolean =
+  private def isNewAddress(address: json.Address): Boolean =
     address.balance == 0 && address.transactions.isEmpty
 
   private def lockAddresses(addresses: Seq[String]): Future[Seq[Address]] = {

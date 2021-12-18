@@ -2,7 +2,10 @@ package com.gemini.jobcoin
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.gemini.jobcoin.handlers.{AddressAlreadyUsed, DepositAddressHandler}
+import com.gemini.jobcoin.background.{DepositWatcher, TransferWatcher}
+import com.gemini.jobcoin.clients.{AddressClient, TransactionClient}
+import com.gemini.jobcoin.handlers.{AddressAlreadyUsed, DepositAddressHandler, TransactionHandler}
+import com.gemini.jobcoin.repository.{AddressRepository, DepositRepository, TransactionRepository}
 import com.typesafe.config.ConfigFactory
 import javax.management.openmbean.KeyAlreadyExistsException
 
@@ -22,8 +25,22 @@ object JobcoinMixer {
     // Load Config
     val config = ConfigFactory.load()
 
-    // Test HTTP client
-    val depositAddressHandler = new DepositAddressHandler(config)
+    // Clients
+    val addressClient = new AddressClient(config)
+    val transactionClient = new TransactionClient(config)
+
+    // Repositories
+    val addressRepository = new AddressRepository
+    val depositRepository = new DepositRepository
+    val transactionRepository = new TransactionRepository
+
+    // Handlers
+    val depositHandler = new DepositAddressHandler(config, addressClient, addressRepository, depositRepository)
+    val transactionHandler = new TransactionHandler(config, addressClient, transactionClient, depositRepository, transactionRepository)
+
+    // Background processes
+    val depositWatcher = new DepositWatcher(actorSystem, transactionHandler)
+    val transferWatcher = new TransferWatcher(actorSystem, transactionHandler)
 
     try {
       while (true) {
@@ -37,7 +54,7 @@ object JobcoinMixer {
           if (line == "") {
             println(s"You must specify empty addresses to mix into!\n$helpText")
           } else {
-            val depositAddress = Await.result(depositAddressHandler.generateDepositAddress(addresses), Duration.Inf)
+            val depositAddress = Await.result(depositHandler.generateDepositAddress(addresses), Duration.Inf)
             println(s"You may now send Jobcoins to address $depositAddress. They will be mixed and sent to your destination addresses.")
           }
         }
@@ -45,6 +62,8 @@ object JobcoinMixer {
     } catch {
       case CompletedException => println("Quitting...")
     } finally {
+      depositWatcher.cancellable.cancel()
+      transferWatcher.cancellable.cancel()
       actorSystem.terminate()
     }
   }

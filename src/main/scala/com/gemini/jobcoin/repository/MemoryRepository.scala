@@ -8,20 +8,20 @@ import scala.collection.mutable.{Map => MMap}
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.concurrent.Future
 
+case object KeyNotFoundException extends RuntimeException("Key not found.")
+
 trait MemoryRepository[A <: Storable] {
   this: Repository[A] =>
 
   /**
-    * Using HashMap to simulate MongoDB. MongoDB make sense here
-    * 'cause we are not storing a lot of columns and we need to retrieve
-    * quickly the addresses using the Deposit Address.
-    *
-    * Also, sharding by key is easier since we can use the DepositAddress to redirect
-    * the DB requests to the correct shard.
+    * Using HashMap to simulate MongoDB.
     */
-  final val memoryDB: MMap[String, A] = MMap.empty
+  final private val memoryDB: MMap[String, A] = MMap.empty
 
-  override def getById(key: String): Future[Option[A]] = async {
+  override def get(): Future[List[A]] =
+    Future.successful(memoryDB.values.toList)
+
+  override def getById(key: String): Future[Option[A]] = Future.successful {
     memoryDB.get(key)
   }
 
@@ -34,5 +34,16 @@ trait MemoryRepository[A <: Storable] {
       case Some(_) =>
         throw new KeyAlreadyExistsException(s"The key ${data.key} is already in use.")
     }
+  }
+
+  override def delete(key: String): Future[Boolean] = Future.successful {
+    memoryDB.remove(key).isDefined
+  }
+
+  override def update(key: String, entity: A): Future[A] = async {
+    if (!await(delete(key))) {
+      throw KeyNotFoundException
+    }
+    await(write(entity))
   }
 }
