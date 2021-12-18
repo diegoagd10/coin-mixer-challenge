@@ -12,7 +12,7 @@ Simple base project for the Jobcoin project using Scala and SBT. It accepts retu
 
 1. All coins transactions are public (Everyone can see all the transactions). This is reason of why the mixer is important.
 2. The mixer will deposit the coins into different addresses associated with the main address so we can hide user transactions.
-3. I change the fee and distribution logic of the mixer:
+3. I changed the fee and distribution logic of the mixer:
     
     3.1 Fee is calculated as follows:
      - Taking the 30% of the total deposited to the home_address.
@@ -109,8 +109,8 @@ I need to improve decimal precision
 ### Left items
 
 - I would love to improve the exception handler since is 
-difficult to track if the background processes are breaking
-due to a client communication or a database exception.
+difficult to track if the background processes are failing
+due to a client communication error or a database exception.
 
 - Add logback to add logs an help investigate issues.
 
@@ -118,11 +118,11 @@ due to a client communication or a database exception.
 is failing, detect bottle necks, etc.
 
 - Improve the distribution logic since anyone can predict that
-the mixer is doing small deposits in the order the addresses where inserted.
+the mixer is doing small deposits in the order the addresses where inserted by the user.
 I could implement a random algorithm to do the small deposits instead.
 
 - Implement dependency injection since I needed to pass
-instances in all places.
+instances in all the places.
 
 - Create base client class to avoid duplicated code in the
 HTTP clients.
