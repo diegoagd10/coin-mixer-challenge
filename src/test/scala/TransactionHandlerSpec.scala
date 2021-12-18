@@ -89,7 +89,7 @@ class TransactionHandlerSpec extends FlatSpec with Matchers with BeforeAndAfter 
     when(transactionRepository.write(createdTransaction)) thenReturn Future.successful(createdTransaction)
     when(transactionClient.post(
       json.Transaction(
-        toAddress = "home_account",
+        toAddress = "home_address",
         fromAddress = Some("1"),
         amount = 10
       ))).thenReturn(Future.successful(Map("error" -> "Insufficient Funds")))
@@ -125,7 +125,7 @@ class TransactionHandlerSpec extends FlatSpec with Matchers with BeforeAndAfter 
       when(transactionClient.post(
         json.Transaction(
           toAddress = address,
-          fromAddress = Some("home_account"),
+          fromAddress = Some("home_address"),
           amount = discount
         )
       )).thenReturn(Future.successful(Map("status" -> "OK")))
